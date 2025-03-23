@@ -22,7 +22,7 @@ class PyObjectId(ObjectId):
         return core_schema.str_schema()
 
     @classmethod
-    def __modify_json_schema__(cls, field_schema, handler): # for pydantic v1 support, can be removed if only using v2.
+    def __modify_json_schema__(cls, field_schema, handler):
         field_schema.update(type="string")
 
 class UserCreate(BaseModel):
@@ -35,7 +35,7 @@ class User(UserCreate):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True  # Updated from allow_population_by_field_name
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
