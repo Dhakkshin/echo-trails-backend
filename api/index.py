@@ -1,33 +1,23 @@
-# from fastapi import FastAPI, Request
-# from fastapi.responses import JSONResponse
-# from mangum import Mangum
-# from fastapi.middleware.cors import CORSMiddleware
-# from app.main import app
-
-# # Add CORS middleware
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-# @app.exception_handler(Exception)
-# async def validation_exception_handler(request: Request, exc: Exception):
-#     return JSONResponse(
-#         status_code=500,
-#         content={"message": str(exc)},
-#     )
-
-# handler = Mangum(app)
-
-from mangum import Mangum
 from fastapi import FastAPI
-app = FastAPI()
+from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
 
-@app.get("/hello")
-def hello():
-    return {"message": "Hello from Vercel!"}
+# Import your actual application
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.main import app
 
-handler = Mangum(app)
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Create handler for Vercel
+def handler(event, context):
+    asgi_handler = Mangum(app)
+    return asgi_handler(event, context)
