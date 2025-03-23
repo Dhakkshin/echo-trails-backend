@@ -1,4 +1,9 @@
 # app/config.py
-SECRET_KEY = "dhakkshin" 
-ALGORITHM = "HS256"
-MONGO_DETAILS = "mongodb+srv://srdhakkshin04:dhakkshin04@cluster0.u3fj2vf.mongodb.net/"  
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+MONGO_DETAILS = os.getenv("MONGO_DETAILS")
