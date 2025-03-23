@@ -13,7 +13,8 @@ class UserService:
             raise HTTPException(status_code=400, detail="Email already registered")
 
         hashed_password = hash_password(user.password)
-        user_dict = user.dict(by_alias=True)
+        # user_dict = user.dict(by_alias=True)
+        user_dict = user.model_dump(by_alias=True)
         user_dict["password"] = hashed_password
         new_user = await user_collection.insert_one(user_dict)
         created_user = await user_collection.find_one({"_id": new_user.inserted_id})
