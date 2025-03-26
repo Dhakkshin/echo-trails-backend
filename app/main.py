@@ -8,5 +8,5 @@ app = FastAPI()
 async def root():
     return {"message": "Hello World"}
 
-# Include the users router
+# Include the users router with updated prefix
 app.include_router(users.router, prefix="/users", tags=["users"])

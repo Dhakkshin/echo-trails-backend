@@ -1,13 +1,42 @@
 from http.server import BaseHTTPRequestHandler
 import json
+import sys
+import os
+from pathlib import Path
+
+# Add the parent directory to sys.path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from app.main import app as fastapi_app
+from fastapi.routing import APIRoute
+
+def get_fastapi_routes():
+    routes = {}
+    for route in fastapi_app.routes:
+        if isinstance(route, APIRoute):
+            routes[route.path] = route
+    return routes
 
 def response_handler(request):
+    # Handle built-in routes
     if request.path == "/api":
         return {"message": "Hello from Echo Trails API"}
     elif request.path == "/api/ping":
         return {"message": "pong"}
-    else:
-        return {"error": "Not Found"}, 404
+    
+    # Handle FastAPI routes
+    fastapi_routes = get_fastapi_routes()
+    api_path = request.path.replace('/api', '')  # Remove /api prefix
+    if api_path in fastapi_routes:
+        try:
+            # Call the FastAPI route endpoint
+            endpoint = fastapi_routes[api_path]
+            response = endpoint.endpoint()
+            return response
+        except Exception as e:
+            return {"error": str(e)}, 500
+    
+    return {"error": "Not Found"}, 404
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
