@@ -3,44 +3,60 @@ import json
 import sys
 import os
 from pathlib import Path
+import asyncio
+from urllib.parse import parse_qs, urlparse
 
 sys.path.append(str(Path(__file__).parent.parent))
 
 from app.main import app as fastapi_app
 from fastapi.routing import APIRoute
+from fastapi import Request
+from fastapi.types import Send, Receive
 
-def get_fastapi_routes():
-    routes = {}
-    for route in fastapi_app.routes:
-        if isinstance(route, APIRoute):
-            routes[f"{route.path}:{route.methods}"] = route
-    return routes
-
-def match_route(request_path, request_method, routes):
-    # Remove /api prefix and ensure leading slash
-    api_path = request_path.replace('/api', '')
-    if not api_path.startswith('/'):
-        api_path = '/' + api_path
+async def execute_endpoint(endpoint, scope):
+    # Create mock Request object
+    request = Request(scope, receive=None, send=None)
     
-    # Try to match the exact route with method
-    route_key = f"{api_path}:{set([request_method])}"
-    return routes.get(route_key)
+    # Execute endpoint with dependencies
+    if asyncio.iscoroutinefunction(endpoint):
+        response = await endpoint()
+    else:
+        response = endpoint()
+    return response
 
 def response_handler(request):
+    # Handle built-in routes
     if request.path == "/api":
         return {"message": "Hello from Echo Trails API"}
     elif request.path == "/api/ping":
         return {"message": "pong"}
     
-    routes = get_fastapi_routes()
-    matched_route = match_route(request.path, request.command, routes)
-    
-    if matched_route:
-        try:
-            response = matched_route.endpoint()
-            return response
-        except Exception as e:
-            return {"error": str(e)}, 500
+    # Handle FastAPI routes
+    try:
+        # Parse the path and create scope
+        url_parts = urlparse(request.path)
+        path = url_parts.path.replace('/api', '', 1) or '/'
+        
+        # Create a minimal ASGI scope
+        scope = {
+            "type": "http",
+            "method": request.command,
+            "scheme": "http",
+            "server": (request.server.server_name, request.server.server_port),
+            "path": path,
+            "query_string": url_parts.query.encode(),
+            "headers": [],
+        }
+
+        # Find matching route
+        for route in fastapi_app.routes:
+            if route.path == path and request.command in route.methods:
+                # Execute the endpoint
+                response = asyncio.run(execute_endpoint(route.endpoint, scope))
+                return response
+                
+    except Exception as e:
+        return {"error": str(e)}, 500
     
     return {"error": "Not Found"}, 404
 
