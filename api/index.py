@@ -5,8 +5,7 @@ import json
 
 # Create the FastAPI app instance with proper configuration
 app = FastAPI(
-    title="Echo Trails API",
-    root_path="/api"
+    title="Echo Trails API"
 )
 
 # Add CORS middleware
@@ -27,9 +26,10 @@ async def root():
 async def ping():
     return {"message": "pong"}
 
-# Configure Mangum handler with proper settings for Vercel
+# Configure handler for Vercel serverless
 handler = Mangum(app, lifespan="off")
 
-# Add this for Vercel compatibility
-def app_handler(event, context):
-    return handler(event, context)
+# Ensure the handler is properly exported for Vercel
+def lambda_handler(event, context):
+    asgi_handler = Mangum(app, lifespan="off")
+    return asgi_handler(event, context)
