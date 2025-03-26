@@ -1,41 +1,34 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import sys
+import asyncio
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
-from app.models.user import UserCreate, UserLogin
-from app.services.user_service import UserService
+from app.main import app as fastapi_app
+
+async def handle_route_async(path, method, body=None):
+    # Remove /api prefix for FastAPI routing
+    path = path.replace('/api', '', 1) or '/'
+    
+    # Find matching route in FastAPI app
+    for route in fastapi_app.routes:
+        if route.path == path and method in route.methods:
+            try:
+                response = await route.endpoint()
+                return response
+            except Exception as e:
+                return {"error": str(e)}, 500
+    
+    return {"error": "Not Found"}, 404
 
 def handle_route(path, method, body=None):
-    routes = {
-        "/api": {"message": "Hello from Echo Trails API"},
-        "/api/ping": {"message": "pong"},
-        "/api/users/hello": {"message": "Hello from users!"}
-    }
-
-    # Handle POST routes separately
-    if method == "POST":
-        if path == "/api/users/register" and body:
-            try:
-                user_data = UserCreate(**body)
-                return {"message": "User registration (mock)", "data": body}
-            except Exception as e:
-                return {"error": str(e)}, 400
-                
-        elif path == "/api/users/login" and body:
-            try:
-                login_data = UserLogin(**body)
-                return {"message": "Login successful (mock)", "token": "mock_token"}
-            except Exception as e:
-                return {"error": str(e)}, 400
-
-    return routes.get(path, {"error": "Not Found"})
+    return asyncio.run(handle_route_async(path, method, body))
 
 class handler(BaseHTTPRequestHandler):
     def parse_body(self):
         content_length = int(self.headers.get('Content-Length', 0))
-        if content_length > 0:
+        if (content_length > 0):
             body = self.rfile.read(content_length)
             return json.loads(body.decode('utf-8'))
         return None
