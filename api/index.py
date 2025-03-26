@@ -1,35 +1,29 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from mangum import Mangum
+from http.server import BaseHTTPRequestHandler
 import json
 
-# Create the FastAPI app instance with proper configuration
-app = FastAPI(
-    title="Echo Trails API"
-)
+def response_handler(request):
+    if request.path == "/api":
+        return {"message": "Hello from Echo Trails API"}
+    elif request.path == "/api/ping":
+        return {"message": "pong"}
+    else:
+        return {"error": "Not Found"}, 404
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        response_data, status_code = response_handler(self) if isinstance(response_handler(self), tuple) else (response_handler(self), 200)
+        
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        
+        self.wfile.write(json.dumps(response_data).encode())
+        return
 
-# Add a basic test route
-@app.get("/")
-async def root():
-    return {"message": "Hello from Echo Trails API", "status": "ok"}
-
-@app.get("/ping")
-async def ping():
-    return {"message": "pong"}
-
-# Configure handler for Vercel serverless
-handler = Mangum(app, lifespan="off")
-
-# Ensure the handler is properly exported for Vercel
-def lambda_handler(event, context):
-    asgi_handler = Mangum(app, lifespan="off")
-    return asgi_handler(event, context)
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', '*')
+        self.end_headers()
