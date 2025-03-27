@@ -5,3 +5,9 @@ __pycache__/
 .venv/
 venv/
 node_modules/
+app/__pycache__/config.cpython-313.pyc
+app/__pycache__/config.cpython-313.pyc
+app/database/__pycache__/database.cpython-313.pyc
+app/models/__pycache__/user.cpython-313.pyc
+app/routers/__pycache__/users.cpython-313.pyc
+app/services/__pycache__/user_service.cpython-313.pyc
