@@ -30,12 +30,14 @@ class UserCreate(BaseModel):
     email: EmailStr = Field(...)
     password: str = Field(...)
 
-class User(UserCreate):
+class User(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id")
+    username: str
+    email: EmailStr
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:
-        populate_by_name = True  # Updated from allow_population_by_field_name
+        populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 

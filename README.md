@@ -25,15 +25,16 @@ Response:
 }
 ```
 
-### User Management
+### Authentication Endpoints
 
 #### Register New User
 
 ```http
 POST /users/register
+Content-Type: application/json
 ```
 
-Request Body:
+Request:
 
 ```json
 {
@@ -43,11 +44,11 @@ Request Body:
 }
 ```
 
-Response:
+Response (201 Created):
 
 ```json
 {
-  "_id": "user_id",
+  "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
   "username": "johndoe",
   "email": "john@example.com",
   "created_at": "2024-03-26T10:00:00.000Z"
@@ -58,9 +59,10 @@ Response:
 
 ```http
 POST /users/login
+Content-Type: application/json
 ```
 
-Request Body:
+Request:
 
 ```json
 {
@@ -69,103 +71,184 @@ Request Body:
 }
 ```
 
-Response:
+Response (200 OK):
 
 ```json
 {
-  "access_token": "eyJ0eXAiOiJKV...",
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "token_type": "bearer"
 }
 ```
 
-#### Test Endpoint
+#### Get User Identity
 
 ```http
-GET /users/hello
-```
-
-Response:
-
-```json
-{
-  "message": "Hello, this is from user services!"
-}
-```
-
-### Audio Management
-
-#### Upload Audio File
-
-```http
-POST /audio/upload
-```
-
-Request:
-
-- Multipart form data
-- Requires Bearer token authentication
-
-Form Fields:
-
-```json
-{
-  "file": "audio_file",
-  "latitude": "float",
-  "longitude": "float",
-  "hidden_until": "datetime"
-}
-```
-
-Response:
-
-```json
-{
-  "id": "uploaded_audio_id"
-}
-```
-
-## Authentication
-
-All protected endpoints require a Bearer token in the Authorization header:
-
-```http
+GET /users/identify
 Authorization: Bearer <access_token>
 ```
 
-## Error Responses
-
-The API returns standard HTTP status codes:
-
-- 200: Success
-- 201: Created
-- 400: Bad Request
-- 401: Unauthorized
-- 404: Not Found
-- 500: Server Error
-
-Error Response Format:
+Response (200 OK):
 
 ```json
 {
-  "detail": "Error message here"
+  "status": "success",
+  "token_info": {
+    "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+    "issued_at": "2024-03-26T10:00:00.000Z",
+    "expires_at": "2024-03-26T10:30:00.000Z",
+    "token_valid": true,
+    "scopes": []
+  },
+  "user_data": {
+    "id": "65f1a2b3c4d5e6f7g8h9i0j1",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "created_at": "2024-03-26T10:00:00.000Z"
+  }
 }
 ```
 
-## Environment Variables
+### Audio Endpoints
+
+#### Upload Audio
+
+```http
+POST /audio/upload
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+```
+
+Request Form Fields:
+
+- `file`: Audio file (required)
+- `latitude`: float (required)
+- `longitude`: float (required)
+- `hidden_until`: datetime ISO string (required)
+
+Response (200 OK):
+
+```json
+{
+  "id": "65f1a2b3c4d5e6f7g8h9i0j1"
+}
+```
+
+#### List User's Audio Files
+
+```http
+GET /audio/user/files
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "audio_files": [
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+      "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+      "file_name": "recording.mp3",
+      "location": {
+        "latitude": 12.9716,
+        "longitude": 77.5946
+      },
+      "hidden_until": "2024-03-27T10:00:00.000Z",
+      "created_at": "2024-03-26T10:00:00.000Z",
+      "audio_data": 1024
+    }
+  ]
+}
+```
+
+#### Get Audio File Metadata
+
+```http
+GET /audio/files/{audio_id}
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+  "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+  "file_name": "recording.mp3",
+  "location": {
+    "latitude": 12.9716,
+    "longitude": 77.5946
+  },
+  "hidden_until": "2024-03-27T10:00:00Z",
+  "created_at": "2024-03-26T10:00:00Z"
+}
+```
+
+#### Download Audio File
+
+```http
+GET /audio/files/{audio_id}/download
+Authorization: Bearer <access_token>
+```
+
+Response:
+
+- Content-Type: audio/mpeg
+- Content-Disposition: attachment; filename="original_filename.mp3"
+- Binary audio data stream
+
+## Error Responses
+
+All endpoints may return the following error responses:
+
+```json
+{
+  "detail": "Error message description"
+}
+```
+
+Common HTTP Status Codes:
+
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 500: Internal Server Error
+
+## Authentication
+
+Protected endpoints require Bearer token authentication:
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+```
+
+## Environment Setup
 
 Required environment variables in `.env`:
 
 ```
-SECRET_KEY=your_secret_key
+JWT_SECRET_KEY=your_secret_key
 ALGORITHM=HS256
-MONGO_DETAILS=your_mongodb_connection_string
+MONGO_DETAILS=mongodb+srv://username:password@cluster.mongodb.net/
 ```
 
 ## Development Setup
 
 1. Clone the repository
-2. Create virtual environment: `python -m venv venv`
-3. Activate venv: `source venv/bin/activate` (Unix) or `venv\Scripts\activate` (Windows)
-4. Install dependencies: `pip install -r requirements.txt`
-5. Set up `.env` file with required variables
-6. Run development server: `uvicorn main:app --reload`
+2. Create virtual environment:
+   ```bash
+   python -m venv venv
+   ```
+3. Activate virtual environment:
+   - Windows: `venv\Scripts\activate`
+   - Unix: `source venv/bin/activate`
+4. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+5. Create `.env` file with required variables
+6. Start development server:
+   ```bash
+   uvicorn main:app --reload
+   ```

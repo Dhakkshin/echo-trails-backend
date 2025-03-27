@@ -1,8 +1,10 @@
 # app/routers/users.py
 from fastapi import APIRouter, HTTPException, Depends, status
 from app.models.user import User, UserLogin, UserCreate
-from app.auth.auth_utils import create_access_token, verify_password
+from app.auth.jwt_handler import create_access_token, verify_password
 from app.services.user_service import UserService
+from app.auth.jwt_bearer import JWTBearer
+from datetime import datetime
 
 router = APIRouter()
 
@@ -22,3 +24,41 @@ async def login_user(user: UserLogin, user_service: UserService = Depends()):
 @router.get("/hello/")
 async def hello_world(user_service: UserService = Depends()):
     return await user_service.hello_world()
+
+
+@router.get("/identify", dependencies=[Depends(JWTBearer())])
+async def identify_user(token: str = Depends(JWTBearer()), user_service: UserService = Depends()):
+    try:
+        user_id = token.get("sub")
+        user_data = await user_service.get_user_by_id(user_id)
+        
+        if not user_data:
+            raise HTTPException(status_code=404, detail="User not found in database")
+
+        return {
+            "status": "success",
+            "token_info": {
+                "user_id": user_id,
+                "issued_at": datetime.utcfromtimestamp(token.get("iat")).isoformat(),
+                "expires_at": datetime.utcfromtimestamp(token.get("exp")).isoformat(),
+                "token_valid": True,
+                "scopes": token.get("scopes", [])
+            },
+            "user_data": {
+                "id": user_data["_id"],
+                "username": user_data.get("username"),
+                "email": user_data.get("email"),
+                "created_at": user_data.get("created_at"),
+            }
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "status": "error",
+                "message": "Invalid token or user data",
+                "error": str(e)
+            }
+        )

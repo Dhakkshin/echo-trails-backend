@@ -9,3 +9,4 @@ client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
 database = client.audio_app_db
 
 user_collection = database.get_collection("users_collection")
+audio_collection = database.get_collection("audio_collection")
