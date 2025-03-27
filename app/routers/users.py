@@ -6,6 +6,8 @@ from app.services.user_service import UserService
 from app.auth.jwt_bearer import JWTBearer
 from datetime import datetime
 import uuid
+from motor.motor_asyncio import AsyncIOMotorClientSessionError
+from pymongo.errors import ConnectionFailure
 
 router = APIRouter()
 
@@ -35,6 +37,18 @@ async def login_user(user: UserLogin, user_service: UserService = Depends()):
     request_id = str(uuid.uuid4())
     debug_print(request_id, f"🔐 Login attempt initiated - Email: {user.email}")
     try:
+        # Check database connection
+        debug_print(request_id, "🔌 Verifying database connection")
+        try:
+            await user_service.check_connection()
+            debug_print(request_id, "✅ Database connection verified")
+        except (ConnectionFailure, AsyncIOMotorClientSessionError) as ce:
+            debug_print(request_id, "❌ Database connection failed", ce)
+            raise HTTPException(
+                status_code=503,
+                detail="Database connection error. Please try again later."
+            )
+
         db_user = await user_service.get_user_by_email(user.email)
         debug_print(request_id, f"🔍 User lookup result - Found: {db_user is not None}")
         
@@ -52,9 +66,20 @@ async def login_user(user: UserLogin, user_service: UserService = Depends()):
         access_token = create_access_token(data={"sub": str(db_user["_id"])})
         debug_print(request_id, f"✅ Login successful - Token generated for user: {db_user['email']}")
         return {"access_token": access_token, "token_type": "bearer"}
-    except Exception as e:
-        debug_print(request_id, "❌ Login process failed", e)
+    except HTTPException as he:
+        debug_print(request_id, "❌ Login process failed - HTTP Exception", he)
         raise
+    except Exception as e:
+        debug_print(request_id, "❌ Login process failed - Unexpected error", e)
+        # Return a more specific error message
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "message": "Internal server error during login",
+                "error_type": e.__class__.__name__,
+                "error": str(e)
+            }
+        )
 
 @router.get("/hello/")
 async def hello_world(user_service: UserService = Depends()):

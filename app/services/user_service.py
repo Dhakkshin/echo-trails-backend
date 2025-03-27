@@ -1,12 +1,16 @@
 # app/services/user_service.py
 from app.models.user import User, UserCreate
-from app.database.database import user_collection
+from app.database.database import user_collection, client
 from app.auth.jwt_handler import hash_password
 from bson import ObjectId
 from fastapi import HTTPException, status
 from datetime import datetime
 
 class UserService:
+    async def check_connection(self):
+        """Verify database connection is alive"""
+        await client.admin.command('ping')
+
     async def create_user(self, user: UserCreate):
         existing_user = await user_collection.find_one({"email": user.email})
         if existing_user:
