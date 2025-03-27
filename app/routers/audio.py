@@ -6,8 +6,7 @@ from typing import Optional
 from app.auth.jwt_bearer import JWTBearer
 from app.services.audio_service import upload_audio, get_user_audio_files, get_audio_by_id, check_connection
 from app.models.audio import AudioModel
-from motor.motor_asyncio import AsyncIOMotorClientSessionError
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 import uuid
 
 router = APIRouter()
@@ -34,7 +33,7 @@ async def upload_audio_file(
         try:
             await check_connection()
             debug_print(request_id, "✅ Database connection verified")
-        except (ConnectionFailure, AsyncIOMotorClientSessionError) as ce:
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
             debug_print(request_id, "❌ Database connection failed", ce)
             raise HTTPException(
                 status_code=503,

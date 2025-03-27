@@ -6,8 +6,7 @@ from app.services.user_service import UserService
 from app.auth.jwt_bearer import JWTBearer
 from datetime import datetime
 import uuid
-from motor.motor_asyncio import AsyncIOMotorClientSessionError
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 router = APIRouter()
 
@@ -42,7 +41,7 @@ async def login_user(user: UserLogin, user_service: UserService = Depends()):
         try:
             await user_service.check_connection()
             debug_print(request_id, "✅ Database connection verified")
-        except (ConnectionFailure, AsyncIOMotorClientSessionError) as ce:
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
             debug_print(request_id, "❌ Database connection failed", ce)
             raise HTTPException(
                 status_code=503,
