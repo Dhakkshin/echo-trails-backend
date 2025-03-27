@@ -14,12 +14,28 @@ async def register_user(user: UserCreate, user_service: UserService = Depends())
 
 @router.post("/login/")
 async def login_user(user: UserLogin, user_service: UserService = Depends()):
-    db_user = await user_service.get_user_by_email(user.email)
-    if not db_user or not verify_password(user.password, db_user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+    print(f"Login attempt for email: {user.email}")
+    try:
+        db_user = await user_service.get_user_by_email(user.email)
+        print(f"Database user found: {db_user is not None}")
+        
+        if not db_user:
+            print("No user found with this email")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        is_valid = verify_password(user.password, db_user["password"])
+        print(f"Password verification result: {is_valid}")
+        
+        if not is_valid:
+            print("Invalid password")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token(data={"sub": str(db_user["_id"])})
-    return {"access_token": access_token, "token_type": "bearer"}
+        access_token = create_access_token(data={"sub": str(db_user["_id"])})
+        print("Access token created successfully")
+        return {"access_token": access_token, "token_type": "bearer"}
+    except Exception as e:
+        print(f"Login error occurred: {str(e)}")
+        raise
 
 @router.get("/hello/")
 async def hello_world(user_service: UserService = Depends()):
