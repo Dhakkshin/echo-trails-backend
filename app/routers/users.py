@@ -4,6 +4,7 @@ from app.models.user import User, UserLogin, UserCreate
 from app.auth.jwt_handler import create_access_token, verify_password
 from app.services.user_service import UserService
 from app.auth.jwt_bearer import JWTBearer
+from app.database.database import Database
 from datetime import datetime
 import uuid
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
@@ -39,7 +40,7 @@ async def login_user(user: UserLogin, user_service: UserService = Depends()):
         # Check database connection
         debug_print(request_id, "🔌 Verifying database connection")
         try:
-            await user_service.check_connection()
+            await Database.check_connection()
             debug_print(request_id, "✅ Database connection verified")
         except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
             debug_print(request_id, "❌ Database connection failed", ce)
