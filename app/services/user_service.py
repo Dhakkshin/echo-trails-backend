@@ -1,18 +1,18 @@
 # app/services/user_service.py
 from app.models.user import User, UserCreate
-from app.database.database import user_collection, client
+from app.database.database import get_user_collection, Database
 from app.auth.jwt_handler import hash_password
 from bson import ObjectId
 from fastapi import HTTPException, status
 from datetime import datetime
 
 class UserService:
-    async def check_connection(self):
-        """Verify database connection is alive"""
-        await client.admin.command('ping')
+    async def get_collection(self):
+        return await get_user_collection()
 
     async def create_user(self, user: UserCreate):
-        existing_user = await user_collection.find_one({"email": user.email})
+        collection = await self.get_collection()
+        existing_user = await collection.find_one({"email": user.email})
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -21,8 +21,8 @@ class UserService:
         user_dict["password"] = hashed_password
         user_dict["created_at"] = datetime.utcnow()
         
-        new_user = await user_collection.insert_one(user_dict)
-        created_user = await user_collection.find_one({"_id": new_user.inserted_id})
+        new_user = await collection.insert_one(user_dict)
+        created_user = await collection.find_one({"_id": new_user.inserted_id})
         
         # Create response without password
         response_data = {
@@ -35,10 +35,12 @@ class UserService:
         return User(**response_data)
 
     async def get_user_by_email(self, email: str):
-        return await user_collection.find_one({"email": email})
+        collection = await self.get_collection()
+        return await collection.find_one({"email": email})
 
     async def get_user_by_id(self, user_id: str):
-        user = await user_collection.find_one({"_id": ObjectId(user_id)})
+        collection = await self.get_collection()
+        user = await collection.find_one({"_id": ObjectId(user_id)})
         if user:
             user["_id"] = str(user["_id"])  # Convert ObjectId to string
         return user

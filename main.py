@@ -1,9 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import users
-from app.routers import audio
+from app.routers import users, audio
+from app.database.database import Database
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_db_client():
+    await Database.connect_db()
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await Database.close_db()
 
 app.add_middleware(
     CORSMiddleware,
