@@ -123,6 +123,7 @@ Request Form Fields:
 - `file`: Audio file (required)
 - `latitude`: float (required)
 - `longitude`: float (required)
+- `range`: float (required) - Distance range in meters where audio is discoverable
 - `hidden_until`: datetime ISO string (required)
 
 Response (200 OK):
@@ -196,6 +197,52 @@ Response:
 - Content-Type: audio/mpeg
 - Content-Disposition: attachment; filename="original_filename.mp3"
 - Binary audio data stream
+
+#### Get Nearby Audio Files
+
+```http
+GET /audio/nearby?latitude=12.9716&longitude=77.5946
+Authorization: Bearer <access_token>
+```
+
+Parameters:
+
+- `latitude`: float (required) - Current location latitude
+- `longitude`: float (required) - Current location longitude
+
+Response (200 OK):
+
+```json
+{
+  "nearby_files": [
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+      "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+      "file_name": "recording.mp3",
+      "location": {
+        "latitude": 12.9716,
+        "longitude": 77.5946
+      },
+      "range": 100.0,
+      "distance": 50.25,
+      "hidden_until": "2024-03-27T10:00:00Z",
+      "created_at": "2024-03-26T10:00:00Z"
+    }
+  ],
+  "location": {
+    "latitude": 12.9716,
+    "longitude": 77.5946
+  }
+}
+```
+
+Notes:
+
+- Only returns audio files that belong to the authenticated user
+- Files are only returned if they are within the specified range
+- Distance is returned in meters and rounded to 2 decimal places
+- Only returns files where hidden_until date has passed
+- Audio data is excluded from the response for performance
 
 ## Error Responses
 

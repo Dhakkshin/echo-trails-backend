@@ -2,6 +2,7 @@ from app.models.audio import AudioModel
 from app.database.database import get_audio_collection, Database
 from bson import ObjectId
 from fastapi import HTTPException
+from datetime import datetime
 
 async def check_connection():
     """Verify database connection is alive"""
@@ -40,3 +41,61 @@ async def get_audio_by_id(audio_id: str, include_data: bool = True) -> dict:
     if audio:
         audio["_id"] = str(audio["_id"])
     return audio
+
+async def get_nearby_audio_files(latitude: float, longitude: float, user_id: str):
+    """
+    Uses MongoDB's $geoWithin operator to find audio files within range
+    """
+    try:
+        collection = await get_audio_collection()
+        
+        pipeline = [
+            {
+                "$geoNear": {
+                    "near": {
+                        "type": "Point",
+                        "coordinates": [longitude, latitude]  # MongoDB uses [long, lat]
+                    },
+                    "distanceField": "calcDistance",  # Change to a temporary field name
+                    "spherical": True,
+                    "query": {
+                        "hidden_until": {"$lte": datetime.utcnow()},  # Only show unhidden files
+                        "user_id": user_id  # Add user_id filter
+                    }
+                }
+            },
+            {
+                "$match": {
+                    "$expr": {
+                        "$lte": ["$calcDistance", "$range"]  # Check if distance is within range
+                    }
+                }
+            },
+            {
+                "$addFields": {
+                    "distance": "$calcDistance",  # Add distance as a new field
+                    "location": {
+                        "latitude": {"$arrayElemAt": ["$location.coordinates", 1]},
+                        "longitude": {"$arrayElemAt": ["$location.coordinates", 0]}
+                    }
+                }
+            },
+            {
+                "$unset": ["calcDistance", "audio_data"]  # Remove temporary field and audio data
+            }
+        ]
+        
+        nearby_files = await collection.aggregate(pipeline).to_list(length=None)
+        
+        # Convert ObjectId and datetime to strings for JSON serialization
+        for file in nearby_files:
+            file["_id"] = str(file["_id"])
+            file["hidden_until"] = file["hidden_until"].isoformat()
+            file["created_at"] = file["created_at"].isoformat()
+            file["distance"] = round(file["distance"], 2)  # Round to 2 decimal places
+            
+        return nearby_files
+        
+    except Exception as e:
+        print(f"Error finding nearby audio files: {str(e)}")
+        raise

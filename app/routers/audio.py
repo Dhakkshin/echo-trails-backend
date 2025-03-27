@@ -1,10 +1,11 @@
 from fastapi import APIRouter, File, Form, UploadFile, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse, JSONResponse
 from datetime import datetime
+from motor.motor_asyncio import AsyncIOMotorClientSession
 import json
 from typing import Optional
 from app.auth.jwt_bearer import JWTBearer
-from app.services.audio_service import upload_audio, get_user_audio_files, get_audio_by_id, check_connection
+from app.services.audio_service import upload_audio, get_user_audio_files, get_audio_by_id, check_connection, get_nearby_audio_files
 from app.models.audio import AudioModel
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 import uuid
@@ -22,6 +23,7 @@ async def upload_audio_file(
     file: UploadFile = File(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
+    range: float = Form(...),  # Add range parameter
     hidden_until: datetime = Form(...),
     current_user: dict = Depends(JWTBearer())
 ):
@@ -43,7 +45,11 @@ async def upload_audio_file(
         audio_content = await file.read()
         audio_data = AudioModel(
             user_id=current_user["sub"],
-            location={"latitude": latitude, "longitude": longitude},
+            location={
+                "type": "Point",
+                "coordinates": [longitude, latitude]  # MongoDB uses [longitude, latitude]
+            },
+            range=range,  # Add range to AudioModel
             audio_data=audio_content,
             hidden_until=hidden_until,
             file_name=file.filename
@@ -65,7 +71,7 @@ async def list_user_audio_files(current_user: dict = Depends(JWTBearer())):
         try:
             await check_connection()
             debug_print(request_id, "✅ Database connection verified")
-        except (ConnectionFailure, AsyncIOMotorClientSessionError) as ce:
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
             debug_print(request_id, "❌ Database connection failed", ce)
             raise HTTPException(
                 status_code=503,
@@ -89,7 +95,7 @@ async def get_audio_metadata(audio_id: str, current_user: dict = Depends(JWTBear
         try:
             await check_connection()
             debug_print(request_id, "✅ Database connection verified")
-        except (ConnectionFailure, AsyncIOMotorClientSessionError) as ce:
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
             debug_print(request_id, "❌ Database connection failed", ce)
             raise HTTPException(
                 status_code=503,
@@ -102,9 +108,6 @@ async def get_audio_metadata(audio_id: str, current_user: dict = Depends(JWTBear
             raise HTTPException(status_code=404, detail="Audio file not found")
         if audio["user_id"] != current_user["sub"]:
             debug_print(request_id, "❌ Not authorized to access this audio file")
-            raise HTTPException(status_code=403, detail="Not authorized to access this audio file")
-        
-        # Convert datetime objects to ISO format strings
         audio["hidden_until"] = audio["hidden_until"].isoformat()
         audio["created_at"] = audio["created_at"].isoformat()
         
@@ -124,13 +127,12 @@ async def download_audio_file(audio_id: str, current_user: dict = Depends(JWTBea
         try:
             await check_connection()
             debug_print(request_id, "✅ Database connection verified")
-        except (ConnectionFailure, AsyncIOMotorClientSessionError) as ce:
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
             debug_print(request_id, "❌ Database connection failed", ce)
             raise HTTPException(
                 status_code=503,
                 detail="Database connection error. Please try again later."
             )
-
         audio = await get_audio_by_id(audio_id, include_data=True)
         if not audio:
             debug_print(request_id, "❌ Audio file not found")
@@ -154,3 +156,48 @@ async def download_audio_file(audio_id: str, current_user: dict = Depends(JWTBea
     except Exception as e:
         debug_print(request_id, "❌ Failed to download audio file", e)
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/nearby/", dependencies=[Depends(JWTBearer())])
+async def get_nearby_files(
+    latitude: float,
+    longitude: float,
+    current_user: dict = Depends(JWTBearer())
+):
+    request_id = str(uuid.uuid4())
+
+    debug_print(request_id, f"🔍 Searching for nearby audio files for user: {current_user['sub']} at ({latitude}, {longitude})")
+    
+    try:
+        # Verify database connection
+        debug_print(request_id, "🔌 Verifying database connection")
+        try:
+            await check_connection()
+            debug_print(request_id, "✅ Database connection verified")
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
+            debug_print(request_id, "❌ Database connection failed", ce)
+            raise HTTPException(
+                status_code=503,
+                detail="Database connection error. Please try again later."
+            )
+
+        nearby_files = await get_nearby_audio_files(
+            latitude=latitude, 
+            longitude=longitude,
+            user_id=current_user["sub"]
+        )
+        debug_print(request_id, f"✅ Found {len(nearby_files)} nearby audio files")
+        
+        return {
+            "nearby_files": nearby_files,
+            "location": {
+                "latitude": latitude,
+                "longitude": longitude
+            }
+        }
+        
+    except Exception as e:
+        debug_print(request_id, "❌ Failed to retrieve nearby audio files", e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve nearby files: {str(e)}"
+        )

@@ -1,13 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import users, audio
-from app.database.database import Database
+from app.database.database import Database, create_indexes
 
 app = FastAPI()
 
 @app.on_event("startup")
 async def startup_db_client():
     await Database.connect_db()
+    await create_indexes()  # Add this line to create required indexes
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

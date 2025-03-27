@@ -92,3 +92,7 @@ async def get_user_collection():
 async def get_audio_collection():
     database = await get_database()
     return database.audio_collection
+
+async def create_indexes():
+    collection = await get_audio_collection()
+    await collection.create_index([("location", "2dsphere")])
