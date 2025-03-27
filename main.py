@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from mangum import Mangum
 from app.routers import users
 
 app = FastAPI()
@@ -13,11 +12,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(users.router, prefix="/users", tags=["users"])
-
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Hello from Echo Trails API", "status": "ok"}
 
-# Handler for Vercel
-handler = Mangum(app, lifespan="off")
+# Include the users router with updated prefix
+app.include_router(users.router, prefix="/users", tags=["users"])
