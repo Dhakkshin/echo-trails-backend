@@ -130,7 +130,13 @@ Response (200 OK):
 
 ```json
 {
-  "id": "65f1a2b3c4d5e6f7g8h9i0j1"
+    "id": "64f7e123...",
+    "location": {
+        "latitude": 11.024196,
+        "longitude": 77.0037728
+    },
+    "range": 100,
+    "hidden_until": "2025-03-28T11:21:54.630Z"
 }
 ```
 
