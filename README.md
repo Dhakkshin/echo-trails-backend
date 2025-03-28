@@ -113,7 +113,7 @@ Response (200 OK):
 #### Upload Audio
 
 ```http
-POST /audio/upload
+POST /audio/upload/
 Authorization: Bearer <access_token>
 Content-Type: multipart/form-data
 ```

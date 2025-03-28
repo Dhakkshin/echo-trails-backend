@@ -56,7 +56,18 @@ async def upload_audio_file(
         )
         result = await upload_audio(audio_data)
         debug_print(request_id, f"✅ Audio upload successful - ID: {result['id']}")
-        return result
+        
+        # Return structured response with requested fields
+        return {
+            "id": result["id"],
+            "location": {
+                "latitude": latitude,
+                "longitude": longitude
+            },
+            "range": range,
+            "hidden_until": hidden_until.isoformat()
+        }
+        
     except Exception as e:
         debug_print(request_id, "❌ Audio upload failed", e)
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
