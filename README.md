@@ -121,6 +121,7 @@ Content-Type: multipart/form-data
 Request Form Fields:
 
 - `file`: Audio file (required)
+- `title`: string (required) - Title of the audio recording
 - `latitude`: float (required)
 - `longitude`: float (required)
 - `range`: float (required) - Distance range in meters where audio is discoverable
@@ -130,16 +131,14 @@ Response (200 OK):
 
 ```json
 {
-  "_id": "64f7e123...",
-  "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
-  "file_name": "recording.mp3",
+  "id": "64f7e123...",
+  "title": "Morning Birds",
   "location": {
-    "type": "Point",
-    "coordinates": [77.0037728, 11.024196]
+    "latitude": 11.024196,
+    "longitude": 77.0037728
   },
-  "range": 100.0,
-  "hidden_until": "2025-03-28T11:21:54.630Z",
-  "created_at": "2024-03-26T10:00:00.000Z"
+  "range": 100,
+  "hidden_until": "2025-03-28T11:21:54.630Z"
 }
 ```
 
@@ -185,6 +184,7 @@ Response (200 OK):
 {
   "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
   "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+  "title": "Morning Birds",
   "file_name": "recording.mp3",
   "location": {
     "type": "Point",

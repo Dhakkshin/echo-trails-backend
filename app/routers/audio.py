@@ -21,9 +21,10 @@ def debug_print(request_id: str, message: str, error: Exception = None):
 @router.post("/upload/", dependencies=[Depends(JWTBearer())])
 async def upload_audio_file(
     file: UploadFile = File(...),
+    title: str = Form(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
-    range: float = Form(...),  # Add range parameter
+    range: float = Form(...),
     hidden_until: datetime = Form(...),
     current_user: dict = Depends(JWTBearer())
 ):
@@ -45,6 +46,7 @@ async def upload_audio_file(
         audio_content = await file.read()
         audio_data = AudioModel(
             user_id=current_user["sub"],
+            title=title,
             location={
                 "type": "Point",
                 "coordinates": [longitude, latitude]  # MongoDB uses [longitude, latitude]
@@ -60,6 +62,7 @@ async def upload_audio_file(
         # Return structured response with requested fields
         return {
             "id": result["id"],
+            "title": title,
             "location": {
                 "latitude": latitude,
                 "longitude": longitude

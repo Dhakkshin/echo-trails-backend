@@ -5,6 +5,7 @@ from bson import ObjectId
 
 class AudioModel(BaseModel):
     user_id: str
+    title: str = Field(..., description="Title of the audio recording")
     location: dict = Field(
         ..., 
         example={
