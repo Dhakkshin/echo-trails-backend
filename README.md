@@ -130,13 +130,16 @@ Response (200 OK):
 
 ```json
 {
-    "id": "64f7e123...",
-    "location": {
-        "latitude": 11.024196,
-        "longitude": 77.0037728
-    },
-    "range": 100,
-    "hidden_until": "2025-03-28T11:21:54.630Z"
+  "_id": "64f7e123...",
+  "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+  "file_name": "recording.mp3",
+  "location": {
+    "type": "Point",
+    "coordinates": [77.0037728, 11.024196]
+  },
+  "range": 100.0,
+  "hidden_until": "2025-03-28T11:21:54.630Z",
+  "created_at": "2024-03-26T10:00:00.000Z"
 }
 ```
 
@@ -157,9 +160,10 @@ Response (200 OK):
       "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
       "file_name": "recording.mp3",
       "location": {
-        "latitude": 12.9716,
-        "longitude": 77.5946
+        "type": "Point",
+        "coordinates": [77.5946, 12.9716]
       },
+      "range": 100.0,
       "hidden_until": "2024-03-27T10:00:00.000Z",
       "created_at": "2024-03-26T10:00:00.000Z",
       "audio_data": 1024
@@ -183,9 +187,10 @@ Response (200 OK):
   "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
   "file_name": "recording.mp3",
   "location": {
-    "latitude": 12.9716,
-    "longitude": 77.5946
+    "type": "Point",
+    "coordinates": [77.5946, 12.9716]
   },
+  "range": 100.0,
   "hidden_until": "2024-03-27T10:00:00Z",
   "created_at": "2024-03-26T10:00:00Z"
 }
@@ -249,6 +254,27 @@ Notes:
 - Distance is returned in meters and rounded to 2 decimal places
 - Only returns files where hidden_until date has passed
 - Audio data is excluded from the response for performance
+
+#### Delete Audio File
+
+```http
+DELETE /audio/files/{audio_id}
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "message": "Audio file deleted successfully"
+}
+```
+
+Notes:
+
+- Only the owner of the audio file can delete it
+- Returns 404 if file not found
+- Returns 403 if user is not authorized to delete the file
 
 ## Error Responses
 

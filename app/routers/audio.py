@@ -5,7 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClientSession
 import json
 from typing import Optional
 from app.auth.jwt_bearer import JWTBearer
-from app.services.audio_service import upload_audio, get_user_audio_files, get_audio_by_id, check_connection, get_nearby_audio_files
+from app.services.audio_service import upload_audio, get_user_audio_files, get_audio_by_id, check_connection, get_nearby_audio_files, delete_audio
 from app.models.audio import AudioModel
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 import uuid
@@ -212,3 +212,44 @@ async def get_nearby_files(
             status_code=500,
             detail=f"Failed to retrieve nearby files: {str(e)}"
         )
+
+@router.delete("/files/{audio_id}", dependencies=[Depends(JWTBearer())])
+async def delete_audio_file(audio_id: str, current_user: dict = Depends(JWTBearer())):
+    request_id = str(uuid.uuid4())
+    debug_print(request_id, f"🗑️ Deleting audio file ID: {audio_id}")
+    try:
+        # Verify database connection
+        debug_print(request_id, "🔌 Verifying database connection")
+        try:
+            await check_connection()
+            debug_print(request_id, "✅ Database connection verified")
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
+            debug_print(request_id, "❌ Database connection failed", ce)
+            raise HTTPException(
+                status_code=503,
+                detail="Database connection error. Please try again later."
+            )
+
+        # Check if file exists and belongs to user first
+        audio = await get_audio_by_id(audio_id, include_data=False)
+        if not audio:
+            debug_print(request_id, "❌ Audio file not found")
+            raise HTTPException(status_code=404, detail="Audio file not found")
+        if audio["user_id"] != current_user["sub"]:
+            debug_print(request_id, "❌ Not authorized to delete this audio file")
+            raise HTTPException(status_code=403, detail="Not authorized to delete this audio file")
+
+        # Delete the file
+        deleted = await delete_audio(audio_id, current_user["sub"])
+        if deleted:
+            debug_print(request_id, "✅ Audio file deleted successfully")
+            return {"message": "Audio file deleted successfully"}
+        else:
+            debug_print(request_id, "❌ Failed to delete audio file")
+            raise HTTPException(status_code=500, detail="Failed to delete audio file")
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        debug_print(request_id, "❌ Failed to delete audio file", e)
+        raise HTTPException(status_code=500, detail=str(e))

@@ -99,3 +99,16 @@ async def get_nearby_audio_files(latitude: float, longitude: float, user_id: str
     except Exception as e:
         print(f"Error finding nearby audio files: {str(e)}")
         raise
+
+async def delete_audio(audio_id: str, user_id: str) -> bool:
+    """Delete an audio file if it belongs to the user"""
+    try:
+        collection = await get_audio_collection()
+        result = await collection.delete_one({
+            "_id": ObjectId(audio_id),
+            "user_id": user_id  # Ensure user owns the audio
+        })
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"❌ Failed to delete audio: {str(e)}")
+        raise
