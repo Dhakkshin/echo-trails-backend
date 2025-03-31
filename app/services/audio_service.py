@@ -81,7 +81,17 @@ async def get_nearby_audio_files(latitude: float, longitude: float, user_id: str
                 }
             },
             {
-                "$unset": ["calcDistance", "audio_data"]  # Remove temporary field and audio data
+                "$project": {
+                    "_id": 1,
+                    "user_id": 1,
+                    "title": 1,
+                    "file_name": 1,
+                    "location": 1,
+                    "range": 1,
+                    "hidden_until": 1,
+                    "created_at": 1,
+                    "distance": 1
+                }
             }
         ]
         
