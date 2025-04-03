@@ -35,6 +35,9 @@ class User(BaseModel):
     username: str
     email: EmailStr
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    followers: list[str] = Field(default_factory=list)
+    following: list[str] = Field(default_factory=list)
+    pending_follow_requests: list[str] = Field(default_factory=list)  # stores user IDs of pending requests
 
     class Config:
         populate_by_name = True

@@ -16,7 +16,7 @@ https://echo-trails-backend.vercel.app
 GET /
 ```
 
-Response:
+Response (200 OK):
 
 ```json
 {
@@ -103,8 +103,172 @@ Response (200 OK):
     "id": "65f1a2b3c4d5e6f7g8h9i0j1",
     "username": "johndoe",
     "email": "john@example.com",
-    "created_at": "2024-03-26T10:00:00.000Z"
+    "created_at": "2024-03-26T10:00:00.000Z",
+    "followers": ["65f1a2b3c4d5e6f7g8h9i0j2"],
+    "following": ["65f1a2b3c4d5e6f7g8h9i0j3"],
+    "pending_follow_requests": ["65f1a2b3c4d5e6f7g8h9i0j4"]
   }
+}
+```
+
+### User Interaction Endpoints
+
+#### Send Follow Request
+
+```http
+POST /users/follow/request/{username}
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "message": "Follow request sent to username"
+}
+```
+
+#### Accept Follow Request
+
+```http
+POST /users/follow/accept/{requester_id}
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "message": "Follow request accepted"
+}
+```
+
+#### Reject Follow Request
+
+```http
+POST /users/follow/reject/{requester_id}
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "message": "Follow request rejected"
+}
+```
+
+#### Get Pending Follow Requests
+
+```http
+GET /users/follow/requests/pending
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+[
+  {
+    "id": "65f1a2b3c4d5e6f7g8h9i0j1",
+    "username": "johndoe"
+  }
+]
+```
+
+#### Unfollow User
+
+```http
+POST /users/unfollow/{username}
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "message": "Successfully unfollowed username"
+}
+```
+
+#### Remove Follower
+
+```http
+POST /followers/remove/{username}
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+{
+  "message": "Successfully removed username from your followers"
+}
+```
+
+#### Get Following Users
+
+```http
+GET /users/following
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+[
+  {
+    "id": "65f1a2b3c4d5e6f7g8h9i0j1",
+    "username": "johndoe"
+  },
+  {
+    "id": "65f1a2b3c4d5e6f7g8h9i0j2",
+    "username": "janesmith"
+  }
+]
+```
+
+Common Error Responses for Follow Operations:
+
+- 400: Bad Request
+  ```json
+  {
+    "detail": "Cannot follow yourself"
+  }
+  ```
+  ```json
+  {
+    "detail": "Already following this user"
+  }
+  ```
+  ```json
+  {
+    "detail": "Follow request already pending"
+  }
+  ```
+- 404: Not Found
+  ```json
+  {
+    "detail": "User not found"
+  }
+  ```
+  ```json
+  {
+    "detail": "No pending follow request found"
+  }
+  ```
+
+Additional Error Responses for Unfollow Operations:
+
+```json
+{
+  "detail": "Not following this user"
+}
+```
+
+```json
+{
+  "detail": "This user is not your follower"
 }
 ```
 
@@ -157,6 +321,7 @@ Response (200 OK):
     {
       "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
       "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+      "title": "Morning Birds",
       "file_name": "recording.mp3",
       "location": {
         "type": "Point",
@@ -229,6 +394,7 @@ Response (200 OK):
     {
       "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
       "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+      "title": "Morning Birds",
       "file_name": "recording.mp3",
       "location": {
         "latitude": 12.9716,
@@ -286,6 +452,18 @@ All endpoints may return the following error responses:
 }
 ```
 
+Or for 500 errors:
+
+```json
+{
+  "detail": {
+    "message": "Internal server error description",
+    "error_type": "ErrorClassName",
+    "error": "Detailed error message"
+  }
+}
+```
+
 Common HTTP Status Codes:
 
 - 400: Bad Request
@@ -331,3 +509,19 @@ MONGO_DETAILS=mongodb+srv://username:password@cluster.mongodb.net/
    ```bash
    uvicorn main:app --reload
    ```
+
+## Response Models
+
+### User Model
+
+```json
+{
+  "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+  "username": "johndoe",
+  "email": "john@example.com",
+  "created_at": "2024-03-26T10:00:00.000Z",
+  "followers": ["65f1a2b3c4d5e6f7g8h9i0j2"],
+  "following": ["65f1a2b3c4d5e6f7g8h9i0j3"],
+  "pending_follow_requests": ["65f1a2b3c4d5e6f7g8h9i0j4"]
+}
+```

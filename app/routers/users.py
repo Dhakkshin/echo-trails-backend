@@ -140,3 +140,150 @@ async def identify_user(token: str = Depends(JWTBearer()), user_service: UserSer
                 "error": str(e)
             }
         )
+
+# @router.post("/follow/{username}")
+# async def follow_user(
+#     username: str,
+#     token: dict = Depends(JWTBearer()),
+#     user_service: UserService = Depends()
+# ):
+#     request_id = str(uuid.uuid4())
+#     debug_print(request_id, f"👥 Follow request initiated - Target username: {username}")
+#     try:
+#         follower_id = token.get("sub")
+#         result = await user_service.follow_user(follower_id, username)
+#         debug_print(request_id, f"✅ Follow successful - User {follower_id} followed {username}")
+#         return result
+#     except Exception as e:
+#         debug_print(request_id, "❌ Follow request failed", e)
+#         raise
+
+@router.post("/unfollow/{username}")
+async def unfollow_user(
+    username: str,
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    debug_print(request_id, f"👥 Unfollow request initiated - Target username: {username}")
+    try:
+        follower_id = token.get("sub")
+        result = await user_service.stop_following(follower_id, username)  # Changed from unfollow_user to stop_following
+        debug_print(request_id, f"✅ Unfollow successful - User {follower_id} unfollowed {username}")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Unfollow request failed", e)
+        raise
+
+@router.post("/follow/request/{username}")
+async def send_follow_request(
+    username: str,
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    debug_print(request_id, f"👥 Follow request initiated - Target username: {username}")
+    try:
+        sender_id = token.get("sub")
+        result = await user_service.send_follow_request(sender_id, username)
+        debug_print(request_id, f"✅ Follow request sent - From {sender_id} to {username}")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Follow request failed", e)
+        raise
+
+@router.post("/follow/accept/{requester_id}")
+async def accept_follow_request(
+    requester_id: str,
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    try:
+        user_id = token.get("sub")
+        result = await user_service.accept_follow_request(user_id, requester_id)
+        debug_print(request_id, f"✅ Follow request accepted - From {requester_id}")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Accept follow request failed", e)
+        raise
+
+@router.post("/follow/reject/{requester_id}")
+async def reject_follow_request(
+    requester_id: str,
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    try:
+        user_id = token.get("sub")
+        result = await user_service.reject_follow_request(user_id, requester_id)
+        debug_print(request_id, f"✅ Follow request rejected - From {requester_id}")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Reject follow request failed", e)
+        raise
+
+@router.get("/follow/requests/pending")
+async def get_pending_follow_requests(
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    try:
+        user_id = token.get("sub")
+        result = await user_service.get_pending_follow_requests(user_id)
+        debug_print(request_id, f"✅ Retrieved pending follow requests")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Get pending requests failed", e)
+        raise
+
+@router.post("/unfollow/{username}")
+async def stop_following(
+    username: str,
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    debug_print(request_id, f"👥 Stop following request initiated - Target username: {username}")
+    try:
+        follower_id = token.get("sub")
+        result = await user_service.stop_following(follower_id, username)
+        debug_print(request_id, f"✅ Unfollowed successful - User {follower_id} stopped following {username}")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Unfollow request failed", e)
+        raise
+
+@router.post("/followers/remove/{username}")
+async def remove_follower(
+    username: str,
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    debug_print(request_id, f"👥 Remove follower request initiated - Follower username: {username}")
+    try:
+        user_id = token.get("sub")
+        result = await user_service.remove_follower(user_id, username)
+        debug_print(request_id, f"✅ Remove follower successful - Removed {username} from followers")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Remove follower request failed", e)
+        raise
+
+@router.get("/following")
+async def get_following_users(
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    try:
+        user_id = token.get("sub")
+        result = await user_service.get_following_users(user_id)
+        debug_print(request_id, f"✅ Retrieved following users list for user {user_id}")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Get following users failed", e)
+        raise
