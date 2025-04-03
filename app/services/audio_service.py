@@ -1,8 +1,9 @@
 from app.models.audio import AudioModel
-from app.database.database import get_audio_collection, Database
+from app.database.database import get_audio_collection, Database, get_user_collection  
 from bson import ObjectId
 from fastapi import HTTPException
 from datetime import datetime
+from app.services.user_service import UserService
 
 async def check_connection():
     """Verify database connection is alive"""
@@ -14,11 +15,68 @@ async def check_connection():
             detail=f"Database connection error: {str(e)}"
         )
 
+async def validate_recipients(user_id: str, recipient_usernames: list[str]) -> list[str]:
+    """Validate recipients and return their user IDs"""
+    user_service = UserService()
+    user = await user_service.get_user_by_id(user_id)
+    following = user.get("following", [])
+    
+    valid_recipients = []
+    for username in recipient_usernames:
+        recipient = await user_service.get_user_by_username(username)
+        if not recipient:
+            raise HTTPException(status_code=404, detail=f"User {username} not found")
+        
+        recipient_id = str(recipient["_id"])
+        if recipient_id not in following:
+            raise HTTPException(status_code=403, detail=f"You are not following {username}")
+            
+        valid_recipients.append(recipient_id)
+    
+    return valid_recipients
+
 async def upload_audio(audio_data: AudioModel) -> dict:
     try:
         collection = await get_audio_collection()
+        user_collection = await get_user_collection()
         audio_dict = audio_data.dict()
+        
+        # Set creator_id same as user_id
+        audio_dict["creator_id"] = audio_dict["user_id"]
+        
+        # If recipients specified, validate and add their IDs
+        if audio_dict.get("recipient_usernames"):
+            recipient_ids = await validate_recipients(
+                audio_dict["user_id"], 
+                audio_dict["recipient_usernames"]
+            )
+            audio_dict["recipient_ids"] = recipient_ids
+            
+            # Add audio ID to recipients' accessible_audio_ids
+            audio = await collection.insert_one(audio_dict)
+            audio_id = str(audio.inserted_id)
+            
+            # Update creator's accessible_audio_ids
+            await user_collection.update_one(
+                {"_id": ObjectId(audio_dict["creator_id"])},
+                {"$addToSet": {"accessible_audio_ids": audio_id}}
+            )
+            
+            # Update recipients' accessible_audio_ids
+            for recipient_id in recipient_ids:
+                await user_collection.update_one(
+                    {"_id": ObjectId(recipient_id)},
+                    {"$addToSet": {"accessible_audio_ids": audio_id}}
+                )
+                
+            return {"id": audio_id}
+            
         audio = await collection.insert_one(audio_dict)
+        # Add to creator's accessible_audio_ids
+        await user_collection.update_one(
+            {"_id": ObjectId(audio_dict["creator_id"])},
+            {"$addToSet": {"accessible_audio_ids": str(audio.inserted_id)}}
+        )
         return {"id": str(audio.inserted_id)}
     except Exception as e:
         print(f"❌ Failed to upload audio: {str(e)}")
@@ -26,7 +84,13 @@ async def upload_audio(audio_data: AudioModel) -> dict:
 
 async def get_user_audio_files(user_id: str) -> list:
     collection = await get_audio_collection()
-    cursor = collection.find({"user_id": user_id})
+    # Update query to include audio shared with the user
+    cursor = collection.find({
+        "$or": [
+            {"user_id": user_id},  # User's own audio
+            {"recipient_ids": user_id}  # Audio shared with user
+        ]
+    })
     audio_files = []
     async for audio in cursor:
         audio["_id"] = str(audio["_id"])
@@ -121,4 +185,45 @@ async def delete_audio(audio_id: str, user_id: str) -> bool:
         return result.deleted_count > 0
     except Exception as e:
         print(f"❌ Failed to delete audio: {str(e)}")
+        raise
+
+async def get_accessible_audio_files(user_id: str) -> list:
+    """Get all audio files that the user can access (own + shared)"""
+    try:
+        collection = await get_audio_collection()
+        cursor = collection.find({
+            "$or": [
+                {"creator_id": user_id},  # Audio files created by user
+                {"recipient_ids": user_id}  # Audio files shared with user
+            ]
+        })
+
+        audio_files = []
+        async for audio in cursor:
+            # Get usernames of users it's shared with
+            shared_with = []
+            if "recipient_ids" in audio:
+                user_collection = await get_user_collection()
+                for recipient_id in audio["recipient_ids"]:
+                    recipient = await user_collection.find_one({"_id": ObjectId(recipient_id)})
+                    if recipient:
+                        shared_with.append(recipient["username"])
+
+            # Format the response
+            audio_files.append({
+                "id": str(audio["_id"]),
+                "title": audio["title"],
+                "location": {
+                    "latitude": audio["location"]["coordinates"][1],
+                    "longitude": audio["location"]["coordinates"][0]
+                },
+                "range": audio["range"],
+                "hidden_until": audio["hidden_until"].isoformat(),
+                "shared_with": shared_with,
+                "creator_id": audio["creator_id"]
+            })
+            
+        return audio_files
+    except Exception as e:
+        print(f"❌ Failed to get accessible audio files: {str(e)}")
         raise

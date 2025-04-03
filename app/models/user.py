@@ -38,6 +38,7 @@ class User(BaseModel):
     followers: list[str] = Field(default_factory=list)
     following: list[str] = Field(default_factory=list)
     pending_follow_requests: list[str] = Field(default_factory=list)  # stores user IDs of pending requests
+    accessible_audio_ids: list[str] = Field(default_factory=list)  # IDs of audios user can access
 
     class Config:
         populate_by_name = True

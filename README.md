@@ -290,6 +290,7 @@ Request Form Fields:
 - `longitude`: float (required)
 - `range`: float (required) - Distance range in meters where audio is discoverable
 - `hidden_until`: datetime ISO string (required)
+- `recipient_usernames`: string (optional) - Comma-separated list of usernames to share with
 
 Response (200 OK):
 
@@ -302,7 +303,22 @@ Response (200 OK):
     "longitude": 77.0037728
   },
   "range": 100,
-  "hidden_until": "2025-03-28T11:21:54.630Z"
+  "hidden_until": "2025-03-28T11:21:54.630Z",
+  "shared_with": ["user1", "user2"]
+}
+```
+
+Additional Error Responses:
+
+```json
+{
+  "detail": "User username not found"
+}
+```
+
+```json
+{
+  "detail": "You are not following username"
 }
 ```
 
@@ -441,6 +457,37 @@ Notes:
 - Only the owner of the audio file can delete it
 - Returns 404 if file not found
 - Returns 403 if user is not authorized to delete the file
+
+#### Get Accessible Audio Files
+
+```http
+GET /audio/accessible/
+Authorization: Bearer <access_token>
+```
+
+Response (200 OK):
+
+```json
+[
+  {
+    "id": "64f7e123...",
+    "title": "Morning Birds",
+    "location": {
+      "latitude": 11.024196,
+      "longitude": 77.0037728
+    },
+    "range": 100,
+    "hidden_until": "2025-03-28T11:21:54.630Z",
+    "shared_with": ["user1", "user2"],
+    "creator_id": "65f1a2b3c4d5e6f7g8h9i0j1"
+  }
+]
+```
+
+Returns all audio files that the user:
+
+- Has created themselves
+- Has been shared with them by users they follow
 
 ## Error Responses
 

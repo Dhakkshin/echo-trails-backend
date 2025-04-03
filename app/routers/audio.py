@@ -5,7 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClientSession
 import json
 from typing import Optional
 from app.auth.jwt_bearer import JWTBearer
-from app.services.audio_service import upload_audio, get_user_audio_files, get_audio_by_id, check_connection, get_nearby_audio_files, delete_audio
+from app.services.audio_service import upload_audio, get_user_audio_files, get_audio_by_id, check_connection, get_nearby_audio_files, delete_audio, get_accessible_audio_files
 from app.models.audio import AudioModel
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 import uuid
@@ -26,11 +26,15 @@ async def upload_audio_file(
     longitude: float = Form(...),
     range: float = Form(...),
     hidden_until: datetime = Form(...),
+    recipient_usernames: str = Form(default=""),  # Comma-separated usernames
     current_user: dict = Depends(JWTBearer())
 ):
     request_id = str(uuid.uuid4())
     debug_print(request_id, f"📤 Starting audio upload for user: {current_user['sub']}")
     try:
+        # Process recipient usernames
+        recipients = [u.strip() for u in recipient_usernames.split(",")] if recipient_usernames else []
+        
         # Verify database connection
         debug_print(request_id, "🔌 Verifying database connection")
         try:
@@ -54,13 +58,12 @@ async def upload_audio_file(
             range=range,  # Add range to AudioModel
             audio_data=audio_content,
             hidden_until=hidden_until,
-            file_name=file.filename
+            file_name=file.filename,
+            recipient_usernames=recipients
         )
         result = await upload_audio(audio_data)
-        debug_print(request_id, f"✅ Audio upload successful - ID: {result['id']}")
         
-        # Return structured response with requested fields
-        return {
+        response = {
             "id": result["id"],
             "title": title,
             "location": {
@@ -68,8 +71,12 @@ async def upload_audio_file(
                 "longitude": longitude
             },
             "range": range,
-            "hidden_until": hidden_until.isoformat()
+            "hidden_until": hidden_until.isoformat(),
+            "shared_with": recipients
         }
+        
+        debug_print(request_id, f"✅ Audio upload successful - ID: {result['id']}")
+        return response
         
     except Exception as e:
         debug_print(request_id, "❌ Audio upload failed", e)
@@ -255,4 +262,28 @@ async def delete_audio_file(audio_id: str, current_user: dict = Depends(JWTBeare
         raise he
     except Exception as e:
         debug_print(request_id, "❌ Failed to delete audio file", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/accessible/", dependencies=[Depends(JWTBearer())])
+async def get_accessible_files(current_user: dict = Depends(JWTBearer())):
+    request_id = str(uuid.uuid4())
+    debug_print(request_id, f"📄 Getting accessible audio files for user: {current_user['sub']}")
+    try:
+        # Verify database connection
+        debug_print(request_id, "🔌 Verifying database connection")
+        try:
+            await check_connection()
+            debug_print(request_id, "✅ Database connection verified")
+        except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
+            debug_print(request_id, "❌ Database connection failed", ce)
+            raise HTTPException(
+                status_code=503,
+                detail="Database connection error. Please try again later."
+            )
+
+        audio_files = await get_accessible_audio_files(current_user["sub"])
+        debug_print(request_id, f"✅ Retrieved {len(audio_files)} accessible audio files")
+        return audio_files
+    except Exception as e:
+        debug_print(request_id, "❌ Failed to get accessible audio files", e)
         raise HTTPException(status_code=500, detail=str(e))
