@@ -31,6 +31,3 @@ app.include_router(users.router, prefix="/users", tags=["users"])
 
 # Include the audio router with updated prefix
 app.include_router(audio.router, prefix="/audio", tags=["audio"])
-
-# Include the questions router
-app.include_router(questions.router, prefix="/questions", tags=["questions"])
