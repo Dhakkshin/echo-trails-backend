@@ -1,4 +1,4 @@
-code = [
+codes = [
   {
     "QNo": 1,
     "Code": """
@@ -790,6 +790,415 @@ def predict_product_sold_out(filename):
 
 # --- Example Usage for Q12 ---
 filename_q12 = 'product_sales.csv'  # Replace with your CSV file name
-predict_product_sold_out(filename_q12)
-"""}
-]
+predict_product_sold_out(filename_q12)"""
+   },
+   {
+        "QNo": 13,
+        "Code": """
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+def predict_customer_churn(filename):
+    try:
+        df = pd.read_csv(filename)
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return
+
+    # --- Data Preprocessing ---
+
+    # Handle missing values
+    # Select numerical columns for imputation
+    numerical_cols = df.select_dtypes(include=['number']).columns
+    imputer_numerical = SimpleImputer(strategy='mean')  # Or 'median', etc.
+    df[numerical_cols] = imputer_numerical.fit_transform(df[numerical_cols])
+
+    # Handle missing values for categorical columns
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    imputer_categorical = SimpleImputer(strategy='most_frequent')
+    df[categorical_cols] = imputer_categorical.fit_transform(df[categorical_cols])
+
+    # Standardize numerical features
+    numerical_cols_to_scale = df.select_dtypes(include=['number']).columns
+    scaler = StandardScaler()
+    df[numerical_cols_to_scale] = scaler.fit_transform(df[numerical_cols_to_scale])
+
+    # --- Model Training and Evaluation ---
+
+    # Prepare data for modeling
+    # Assuming 'Churn' is the target variable.  
+    # ***You MUST adjust this to the correct name of your target column***
+    X = df.drop('Churn', axis=1)  # Features
+    y = df['Churn']  # Target variable
+
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Train Gaussian Naïve Bayes
+    model = GaussianNB()
+    model.fit(X_train, y_train)
+
+    # Make predictions
+    y_pred = model.predict(X_test)
+
+    # Evaluate
+    accuracy = accuracy_score(y_test, y_pred)
+    confusion = confusion_matrix(y_test, y_pred)
+    classification_report_str = classification_report(y_test, y_pred)
+
+    # Output results
+    print("Accuracy:", round(accuracy, 2))
+    print("Confusion Matrix:\n", confusion)
+    print("Classification Report:\n", classification_report_str)
+
+# --- Example Usage for Q13 ---
+filename_q13 = 'customer_data.csv'  # Replace with your CSV file name
+predict_customer_churn(filename_q13)"""
+    },
+    {
+        "QNo": 14,
+        "Code": """import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+def categorize_spending_behavior(filename, n_clusters, distance_threshold):
+    
+    try:
+        df = pd.read_csv(filename)
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return
+
+    # --- Data Preprocessing ---
+
+    # Map spending score names to numerical values
+    spending_map = {'Low': 0, 'Average': 1, 'High': 2}
+    df['Spending Score'] = df['Spending Score'].map(spending_map)
+
+    # Handle missing values (basic imputation for demonstration)
+    df = df.fillna(df.mean())  # Fill missing values with the mean
+
+    # Select features for clustering
+    features = ['Age', 'Work Experience', 'Spending Score', 'Family Size']
+    X = df[features]
+
+    # Scale the features (important for K-Means)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # --- K-Means Clustering ---
+
+    # Apply K-Means
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)  # You can adjust random_state
+    kmeans.fit(X_scaled)
+    df['Cluster'] = kmeans.labels_
+
+    # --- Outlier Detection ---
+
+    # Calculate Euclidean distances
+    distances = np.sqrt(np.sum((X_scaled - kmeans.cluster_centers_[df['Cluster']])**2, axis=1))
+
+    # Identify outliers
+    df['Category'] = ['Outlier' if dist > distance_threshold else f'Cluster {cluster + 1}' 
+                        for cluster, dist in zip(df['Cluster'], distances)]
+
+    # --- Output ---
+
+    for index, row in df.iterrows():
+        print(f"Customer {index + 1}: {row['Category']}")
+
+# --- Example Usage for Q14 ---
+filename_q14 = 'customer_records.csv'  # Replace with your CSV file name
+n_clusters_q14 = 3  # Example: You might need to determine the optimal number of clusters
+distance_threshold_q14 = 2.0  # Example: You'll need to determine an appropriate threshold
+
+categorize_spending_behavior(filename_q14, n_clusters_q14, distance_threshold_q14)"""
+    },
+    {
+        "QNo": 15,
+        "Code": """import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+def classify_weather_patterns(filename):
+
+    try:
+        df = pd.read_csv(filename)
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return
+
+    # --- Data Preprocessing ---
+
+    # Select features for clustering
+    X = df[['TEMPERATURE', 'HUMIDITY']]
+
+    # Handle missing values (basic imputation for demonstration)
+    X = X.fillna(X.mean())
+
+    # Scale the features (important for K-Means)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # --- K-Means Clustering ---
+
+    # Apply K-Means with 4 centroids
+    kmeans = KMeans(n_clusters=4, random_state=42)  # You can adjust random_state
+    kmeans.fit(X_scaled)
+    df['Cluster'] = kmeans.labels_
+
+    # --- Prediction for New Values ---
+
+    while True:
+        try:
+            temperature = float(input("Enter temperature: "))
+            humidity = float(input("Enter humidity: "))
+            break
+        except ValueError:
+            print("Invalid input. Please enter numerical values.")
+
+    # Scale the new input
+    new_data = pd.DataFrame({'TEMPERATURE': [temperature], 'HUMIDITY': [humidity]})
+    new_data_scaled = scaler.transform(new_data)  # Use the SAME scaler
+
+    # Predict the cluster
+    predicted_cluster = kmeans.predict(new_data_scaled)[0]
+
+    # --- Output ---
+
+    print(f"The weather condition belongs to cluster: {predicted_cluster + 1}")  # 1-based index
+
+# --- Example Usage for Q15 ---
+filename_q15 = 'weather_data.csv'  # Replace with your CSV file name
+classify_weather_patterns(filename_q15)"""
+    },
+    {
+        "QNo": 16,
+        "Code": """import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.neural_network import MLPClassifier  # For a basic neural network
+
+def predict_student_pass_fail(filename):
+
+
+    try:
+        df = pd.read_csv(filename)
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return
+
+    # --- Data Preprocessing ---
+
+    # Handle missing values (basic imputation)
+    df = df.fillna(df.mean())  # Or use other strategies if needed
+
+    # Encode target variable ('Pass/Fail' or similar)
+    # Assuming the target column is something like 'Result' or 'Pass/Fail'
+    # ***You MUST adjust this to the correct name of your target column***
+    le = LabelEncoder()
+    df['Result'] = le.fit_transform(df['Result'])  # Encodes 'Pass'/'Fail' to 0/1
+
+    # Normalize features
+    features = ['Math', 'Science', 'History']  # Adjust if your column names are different
+    X = df[features]
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    y = df['Result']  # Target variable (pass/fail)
+
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+    # --- Neural Network Training ---
+
+    # Train the neural network
+    # MLPClassifier is a basic Multi-layer Perceptron (a type of neural network)
+    model = MLPClassifier(hidden_layer_sizes=(10, 5),  # Example: 2 hidden layers
+                          activation='relu',  # Common activation function
+                          solver='adam',      # Optimization algorithm
+                          max_iter=500,       # Maximum iterations
+                          random_state=42)
+    model.fit(X_train, y_train)
+
+    # --- Prediction for New Scores ---
+
+    while True:
+        try:
+            math_score = float(input("Enter Math score: "))
+            science_score = float(input("Enter Science score: "))
+            history_score = float(input("Enter History score: "))
+            break
+        except ValueError:
+            print("Invalid input. Please enter numerical values.")
+
+    # Scale the new input
+    new_data = pd.DataFrame({'Math': [math_score], 'Science': [science_score], 'History': [history_score]})
+    new_data_scaled = scaler.transform(new_data)  # Use the SAME scaler
+
+    # Predict the result
+    prediction = model.predict(new_data_scaled)[0]
+
+    # --- Output ---
+
+    if prediction == 1:  # Assuming 1 represents 'Pass'
+        print("Predicted Result: Pass")
+    else:
+        print("Predicted Result: Fail")
+
+# --- Example Usage for Q16 ---
+filename_q16 = 'student_scores.csv'  # Replace with your CSV file name
+predict_student_pass_fail(filename_q16)"""
+    },
+    {
+        "QNo": 17,
+        "Code": """import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score
+import numpy as np
+
+def gini_impurity(y):
+
+    if len(y) == 0:
+        return 0
+    probabilities = pd.Series(y).value_counts() / len(y)
+    gini = 1 - np.sum(probabilities**2)
+    return gini
+
+def predict_credit_risk(filename):
+
+    try:
+        df = pd.read_csv(filename)
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return
+
+    # --- Data Preprocessing ---
+
+    # Handle missing values
+    # Select numerical columns for imputation
+    numerical_cols = df.select_dtypes(include=['number']).columns
+    imputer_numerical = SimpleImputer(strategy='mean')  # Or 'median', etc.
+    df[numerical_cols] = imputer_numerical.fit_transform(df[numerical_cols])
+
+    # Select categorical columns for imputation
+    categorical_cols = df.select_dtypes(include=['object']).columns
+    imputer_categorical = SimpleImputer(strategy='most_frequent')
+    df[categorical_cols] = imputer_categorical.fit_transform(df[categorical_cols])
+
+    # Encode categorical features
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col])
+
+    # Prepare data for modeling
+    # Assuming 'Credit_Risk' is the target variable.  
+    # ***You MUST adjust this to the correct name of your target column***
+    X = df.drop('Credit_Risk', axis=1)  # Features
+    y = df['Credit_Risk']  # Target variable
+
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # --- Gini Impurity Calculation ---
+
+    # Calculate Gini impurity before training
+    gini_before = gini_impurity(y_train)
+    print("Gini Impurity Before Training:", round(gini_before, 4))
+
+    # --- Model Training ---
+
+    # Train Decision Tree Classifier
+    model = DecisionTreeClassifier()
+    model.fit(X_train, y_train)
+
+    # --- Gini Impurity Calculation (After Training - on predictions) ---
+
+    # Get predictions on the test set
+    y_pred = model.predict(X_test)
+
+    # Calculate Gini impurity of the predictions
+    gini_after = gini_impurity(y_pred)
+    print("Gini Impurity After Training (on predictions):", round(gini_after, 4))
+
+    # --- Model Evaluation (Basic) ---
+
+    accuracy = accuracy_score(y_test, y_pred)
+    print("Accuracy:", round(accuracy, 2))
+
+
+# --- Example Usage for Q17 ---
+filename_q17 = 'credit_risk_data.csv'  # Replace with your CSV file name
+predict_credit_risk(filename_q17)"""
+    },
+    {
+        "QNo": 18,
+        "Code": """import pandas as pd
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
+def analyze_loan_applications(filename):
+
+
+    try:
+        df = pd.read_csv(filename)
+    except FileNotFoundError:
+        print(f"Error: File '{filename}' not found.")
+        return
+
+    # --- Identify and Report Missing Data ---
+
+    print("--- Missing Values Count per Column ---")
+    print(df.isnull().sum())  # Count missing values in each column
+
+    # --- Handle Missing Data ---
+
+    # Remove rows with missing values
+    df_dropped = df.dropna()
+    print("\n--- Dataset After Dropping Rows with Missing Values ---")
+    print(df_dropped)
+
+    # Fill missing values
+    df['LoanAmount'].fillna(df['LoanAmount'].mean(), inplace=True)
+    df['Loan_Term'].fillna(df['Loan_Term'].mode()[0], inplace=True)
+    df['Gender'].fillna(df['Gender'].mode()[0], inplace=True)
+    df['Credit_History'].fillna(df['Credit_History'].mode()[0], inplace=True)
+    df['Loan_Status'].fillna(df['Loan_Status'].mode()[0], inplace=True)
+
+    # --- Standardization and Normalization ---
+
+    # Standardization (Z-score normalization)
+    scaler_standard = StandardScaler()
+    df['LoanAmount_standardized'] = scaler_standard.fit_transform(df[['LoanAmount']])
+
+    # Normalization (Min-Max scaling)
+    scaler_minmax = MinMaxScaler()
+    df['LoanAmount_normalized'] = scaler_minmax.fit_transform(df[['LoanAmount']])
+
+    # --- Display Datasets After Handling Missing Data ---
+
+    print("\n--- Dataset After Handling Missing Data ---")
+    print(df)
+
+    # --- Display Standardized and Normalized Values ---
+
+    print("\n--- Standardized LoanAmount Values ---")
+    print(df[['LoanAmount_standardized']].head())
+
+    print("\n--- Normalized LoanAmount Values ---")
+    print(df[['LoanAmount_normalized']].head())
+
+# --- Example Usage for Q18 ---
+filename_q18 = 'loan_applications.csv'  # Replace with your CSV file name
+analyze_loan_applications(filename_q18)"""
+    }
+] 
