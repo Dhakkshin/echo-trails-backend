@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from app.data.code import codes
 
 router = APIRouter()
 
@@ -61,3 +62,12 @@ async def get_questions():
   }
 ]
     return questions
+
+@router.get("/{qno}")
+async def get_answer(qno: int):
+    """Get answer code for a specific question number"""
+    for answer in codes:
+        if answer["QNo"] == qno:
+            return answer
+    raise HTTPException(status_code=404, detail=f"Answer for question {qno} not found")
+
