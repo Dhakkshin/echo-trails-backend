@@ -90,18 +90,40 @@ async def upload_audio(audio_data: AudioModel) -> dict:
 
 async def get_user_audio_files(user_id: str) -> list:
     collection = await get_audio_collection()
-    # Update query to include audio shared with the user
-    cursor = collection.find({
-        "$or": [
-            {"user_id": user_id},  # User's own audio
-            {"recipient_ids": user_id}  # Audio shared with user
-        ]
-    })
+    user_collection = await get_user_collection()
+    
+    # First get user's accessible_audio_ids
+    user = await user_collection.find_one({"_id": ObjectId(user_id)})
+    if not user or "accessible_audio_ids" not in user:
+        return []
+    
+    # Convert string IDs to ObjectIds for query
+    accessible_ids = [ObjectId(aid) for aid in user.get("accessible_audio_ids", [])]
+    
+    # Get all audio files the user can access
+    cursor = collection.find({"_id": {"$in": accessible_ids}})
+    
     audio_files = []
     async for audio in cursor:
-        audio["_id"] = str(audio["_id"])
-        audio["audio_data"] = len(audio["audio_data"])
-        audio_files.append(audio)
+        # Get username of audio creator
+        creator = await user_collection.find_one({"_id": ObjectId(audio["user_id"])})
+        creator_username = creator["username"] if creator else "unknown"
+        
+        # Format the audio document
+        audio_doc = {
+            "_id": str(audio["_id"]),
+            "user_id": audio["user_id"],
+            "username": creator_username,
+            "title": audio["title"],
+            "file_name": audio["file_name"],
+            "location": audio["location"],
+            "range": audio["range"],
+            "hidden_until": audio["hidden_until"],
+            "created_at": audio["created_at"],
+            "audio_data": len(audio["audio_data"])
+        }
+        audio_files.append(audio_doc)
+    
     return audio_files
 
 async def get_audio_by_id(audio_id: str, include_data: bool = True) -> dict:
