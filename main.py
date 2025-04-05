@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import users, audio, questions
+from app.routers import users, audio
 from app.database.database import Database, create_indexes
 
 app = FastAPI()
