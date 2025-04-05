@@ -42,7 +42,7 @@ async def upload_audio(audio_data: AudioModel) -> dict:
         audio_dict = audio_data.dict()
         
         # Set creator_id same as user_id
-        audio_dict["creator_id"] = audio_dict["user_id"]
+        # audio_dict["creator_id"] = audio_dict["user_id"]
         
         # If recipients specified, validate and add their IDs
         if audio_dict.get("recipient_usernames"):
@@ -58,7 +58,7 @@ async def upload_audio(audio_data: AudioModel) -> dict:
             
             # Update creator's accessible_audio_ids
             await user_collection.update_one(
-                {"_id": ObjectId(audio_dict["creator_id"])},
+                {"_id": ObjectId(audio_dict["user_id"])},
                 {"$addToSet": {"accessible_audio_ids": audio_id}}
             )
             
@@ -74,7 +74,7 @@ async def upload_audio(audio_data: AudioModel) -> dict:
         audio = await collection.insert_one(audio_dict)
         # Add to creator's accessible_audio_ids
         await user_collection.update_one(
-            {"_id": ObjectId(audio_dict["creator_id"])},
+            {"_id": ObjectId(audio_dict["user_id"])},
             {"$addToSet": {"accessible_audio_ids": str(audio.inserted_id)}}
         )
         return {"id": str(audio.inserted_id)}

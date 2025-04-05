@@ -479,15 +479,10 @@ Response (200 OK):
     "range": 100,
     "hidden_until": "2025-03-28T11:21:54.630Z",
     "shared_with": ["user1", "user2"],
-    "creator_id": "65f1a2b3c4d5e6f7g8h9i0j1"
+    "user_id": "65f1a2b3c4d5e6f7g8h9i0j1"
   }
 ]
 ```
-
-Returns all audio files that the user:
-
-- Has created themselves
-- Has been shared with them by users they follow
 
 ## Error Responses
 
@@ -570,5 +565,24 @@ MONGO_DETAILS=mongodb+srv://username:password@cluster.mongodb.net/
   "followers": ["65f1a2b3c4d5e6f7g8h9i0j2"],
   "following": ["65f1a2b3c4d5e6f7g8h9i0j3"],
   "pending_follow_requests": ["65f1a2b3c4d5e6f7g8h9i0j4"]
+}
+```
+
+### Audio Model
+
+```json
+{
+  "_id": "64f7e123...",
+  "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+  "title": "Morning Birds",
+  "location": {
+    "type": "Point",
+    "coordinates": [77.0037728, 11.024196]
+  },
+  "range": 100,
+  "hidden_until": "2025-03-28T11:21:54.630Z",
+  "created_at": "2024-03-26T10:00:00.000Z",
+  "file_name": "recording.mp3",
+  "recipient_ids": ["65f1a2b3c4d5e6f7g8h9i0j2"]
 }
 ```

@@ -59,7 +59,8 @@ async def upload_audio_file(
             audio_data=audio_content,
             hidden_until=hidden_until,
             file_name=file.filename,
-            recipient_usernames=recipients
+            recipient_usernames=recipients,
+            creator_id=current_user["sub"]
         )
         result = await upload_audio(audio_data)
         
@@ -73,6 +74,7 @@ async def upload_audio_file(
             "range": range,
             "hidden_until": hidden_until.isoformat(),
             "shared_with": recipients
+            # "creator_id": current_user["sub"]
         }
         
         debug_print(request_id, f"✅ Audio upload successful - ID: {result['id']}")
