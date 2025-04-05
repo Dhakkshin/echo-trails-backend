@@ -18,7 +18,7 @@ async def check_connection():
 async def validate_recipients(user_id: str, recipient_usernames: list[str]) -> list[str]:
     """Validate recipients and return their user IDs"""
     if not recipient_usernames:
-        return []
+        raise HTTPException(status_code=400, detail="At least one recipient is required")
         
     user_service = UserService()
     user = await user_service.get_user_by_id(user_id)
@@ -34,7 +34,8 @@ async def validate_recipients(user_id: str, recipient_usernames: list[str]) -> l
             raise HTTPException(status_code=404, detail=f"User {username} not found")
         
         recipient_id = str(recipient["_id"])
-        if recipient_id not in following:
+        if recipient_id not in following and recipient_id != user_id:
+            # Only check following requirement if not self
             raise HTTPException(status_code=403, detail=f"You are not following {username}")
             
         valid_recipients.append(recipient_id)
@@ -47,43 +48,25 @@ async def upload_audio(audio_data: AudioModel) -> dict:
         user_collection = await get_user_collection()
         audio_dict = audio_data.dict()
         
-        # Set creator_id same as user_id
-        # audio_dict["creator_id"] = audio_dict["user_id"]
+        # Validate and get recipient IDs (only explicitly specified recipients)
+        recipient_ids = await validate_recipients(
+            audio_dict["user_id"], 
+            audio_dict.get("recipient_usernames", [])
+        )
+        audio_dict["recipient_ids"] = recipient_ids
         
-        # If recipients specified, validate and add their IDs
-        if audio_dict.get("recipient_usernames"):
-            recipient_ids = await validate_recipients(
-                audio_dict["user_id"], 
-                audio_dict["recipient_usernames"]
-            )
-            audio_dict["recipient_ids"] = recipient_ids
-            
-            # Add audio ID to recipients' accessible_audio_ids
-            audio = await collection.insert_one(audio_dict)
-            audio_id = str(audio.inserted_id)
-            
-            # Update creator's accessible_audio_ids
+        # Insert audio
+        audio = await collection.insert_one(audio_dict)
+        audio_id = str(audio.inserted_id)
+        
+        # Update only specified recipients' accessible_audio_ids
+        for recipient_id in recipient_ids:
             await user_collection.update_one(
-                {"_id": ObjectId(audio_dict["user_id"])},
+                {"_id": ObjectId(recipient_id)},
                 {"$addToSet": {"accessible_audio_ids": audio_id}}
             )
             
-            # Update recipients' accessible_audio_ids
-            for recipient_id in recipient_ids:
-                await user_collection.update_one(
-                    {"_id": ObjectId(recipient_id)},
-                    {"$addToSet": {"accessible_audio_ids": audio_id}}
-                )
-                
-            return {"id": audio_id}
-            
-        audio = await collection.insert_one(audio_dict)
-        # Add to creator's accessible_audio_ids
-        await user_collection.update_one(
-            {"_id": ObjectId(audio_dict["user_id"])},
-            {"$addToSet": {"accessible_audio_ids": str(audio.inserted_id)}}
-        )
-        return {"id": str(audio.inserted_id)}
+        return {"id": audio_id}
     except Exception as e:
         print(f"❌ Failed to upload audio: {str(e)}")
         raise

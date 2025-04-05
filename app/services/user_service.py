@@ -253,3 +253,8 @@ class UserService:
                 })
                 
         return following_users
+
+    async def get_username_by_id(self, user_id: str) -> str:
+        collection = await self.get_collection()
+        user = await collection.find_one({"_id": ObjectId(user_id)})
+        return user["username"] if user else None
