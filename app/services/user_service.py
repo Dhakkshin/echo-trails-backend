@@ -52,6 +52,13 @@ class UserService:
             user["_id"] = str(user["_id"])  # Convert ObjectId to string
         return user
     
+    async def get_user_by_username(self, username: str):
+        collection = await self.get_collection()
+        user = await collection.find_one({"username": username})
+        if user:
+            user["_id"] = str(user["_id"])  # Convert ObjectId to string
+        return user
+    
     async def hello_world(self):
         return {"message": "Hello, this is from user servives!"}
 
