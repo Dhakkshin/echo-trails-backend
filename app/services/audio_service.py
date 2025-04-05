@@ -17,12 +17,18 @@ async def check_connection():
 
 async def validate_recipients(user_id: str, recipient_usernames: list[str]) -> list[str]:
     """Validate recipients and return their user IDs"""
+    if not recipient_usernames:
+        return []
+        
     user_service = UserService()
     user = await user_service.get_user_by_id(user_id)
     following = user.get("following", [])
     
     valid_recipients = []
     for username in recipient_usernames:
+        if not username:  # Skip empty usernames
+            continue
+            
         recipient = await user_service.get_user_by_username(username)
         if not recipient:
             raise HTTPException(status_code=404, detail=f"User {username} not found")

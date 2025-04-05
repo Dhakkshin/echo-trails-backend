@@ -33,7 +33,7 @@ async def upload_audio_file(
     debug_print(request_id, f"📤 Starting audio upload for user: {current_user['sub']}")
     try:
         # Process recipient usernames
-        recipients = [u.strip() for u in recipient_usernames.split(",")] if recipient_usernames else []
+        recipients = [u.strip() for u in recipient_usernames.split(",") if u.strip()] if recipient_usernames else []
         
         # Verify database connection
         debug_print(request_id, "🔌 Verifying database connection")
