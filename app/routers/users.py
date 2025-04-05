@@ -65,7 +65,11 @@ async def login_user(user: UserLogin, user_service: UserService = Depends()):
 
         access_token = create_access_token(data={"sub": str(db_user["_id"])})
         debug_print(request_id, f"✅ Login successful - Token generated for user: {db_user['email']}")
-        return {"access_token": access_token, "token_type": "bearer"}
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "username": db_user["username"]
+        }
     except HTTPException as he:
         debug_print(request_id, "❌ Login process failed - HTTP Exception", he)
         raise
