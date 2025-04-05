@@ -290,7 +290,7 @@ Request Form Fields:
 - `longitude`: float (required)
 - `range`: float (required) - Distance range in meters where audio is discoverable
 - `hidden_until`: datetime ISO string (required)
-- `recipient_usernames`: string (optional) - Comma-separated list of usernames to share with
+- `recipient_usernames`: string (required) - Comma-separated list of usernames to share with. Audio will ONLY be accessible to these users.
 
 Response (200 OK):
 
@@ -309,6 +309,12 @@ Response (200 OK):
 ```
 
 Additional Error Responses:
+
+```json
+{
+  "detail": "At least one recipient is required"
+}
+```
 
 ```json
 {
@@ -337,6 +343,7 @@ Response (200 OK):
     {
       "_id": "65f1a2b3c4d5e6f7g8h9i0j1",
       "user_id": "65f1a2b3c4d5e6f7g8h9i0j1",
+      "username": "john_doe",
       "title": "Morning Birds",
       "file_name": "recording.mp3",
       "location": {
@@ -484,6 +491,32 @@ Response (200 OK):
 ]
 ```
 
+### User Endpoints
+
+#### Get All Users
+
+```http
+GET /users/all
+Authorization: Bearer <access_token>
+```
+
+Returns a list of all registered users with their IDs and usernames.
+
+Response (200 OK):
+
+```json
+[
+  {
+    "id": "65f1a2b3c4d5e6f7g8h9i0j1",
+    "username": "john_doe"
+  },
+  {
+    "id": "65f1a2b3c4d5e6f7g8h9i0j2",
+    "username": "jane_smith"
+  }
+]
+```
+
 ## Error Responses
 
 All endpoints may return the following error responses:
@@ -564,7 +597,8 @@ MONGO_DETAILS=mongodb+srv://username:password@cluster.mongodb.net/
   "created_at": "2024-03-26T10:00:00.000Z",
   "followers": ["65f1a2b3c4d5e6f7g8h9i0j2"],
   "following": ["65f1a2b3c4d5e6f7g8h9i0j3"],
-  "pending_follow_requests": ["65f1a2b3c4d5e6f7g8h9i0j4"]
+  "pending_follow_requests": ["65f1a2b3c4d5e6f7g8h9i0j4"],
+  "accessible_audio_ids": ["64f7e123..."]
 }
 ```
 
@@ -583,6 +617,7 @@ MONGO_DETAILS=mongodb+srv://username:password@cluster.mongodb.net/
   "hidden_until": "2025-03-28T11:21:54.630Z",
   "created_at": "2024-03-26T10:00:00.000Z",
   "file_name": "recording.mp3",
-  "recipient_ids": ["65f1a2b3c4d5e6f7g8h9i0j2"]
+  "recipient_ids": ["65f1a2b3c4d5e6f7g8h9i0j2"],
+  "recipient_usernames": ["user1", "user2"]
 }
 ```

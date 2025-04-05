@@ -291,3 +291,19 @@ async def get_following_users(
     except Exception as e:
         debug_print(request_id, "❌ Get following users failed", e)
         raise
+
+@router.get("/all", dependencies=[Depends(JWTBearer())])
+async def get_all_users(
+    current_user: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    """Get list of all registered users"""
+    request_id = str(uuid.uuid4())
+    debug_print(request_id, "📋 Getting list of all users")
+    try:
+        users = await user_service.get_all_users()
+        debug_print(request_id, f"✅ Retrieved {len(users)} users")
+        return users
+    except Exception as e:
+        debug_print(request_id, "❌ Failed to get users list", e)
+        raise HTTPException(status_code=500, detail=str(e))

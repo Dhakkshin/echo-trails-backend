@@ -258,3 +258,15 @@ class UserService:
         collection = await self.get_collection()
         user = await collection.find_one({"_id": ObjectId(user_id)})
         return user["username"] if user else None
+
+    async def get_all_users(self) -> list:
+        """Get all registered users' basic info"""
+        collection = await self.get_collection()
+        cursor = collection.find({}, {"username": 1})  # Only get _id and username fields
+        users = []
+        async for user in cursor:
+            users.append({
+                "id": str(user["_id"]),
+                "username": user["username"]
+            })
+        return users
