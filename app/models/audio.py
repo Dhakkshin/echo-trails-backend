@@ -19,4 +19,4 @@ class AudioModel(BaseModel):
     file_name: str
     range: float = Field(..., description="Distance range in meters")
     recipient_usernames: list[str] = Field(default_factory=list)  # List of usernames who can access this audio
-    # creator_id: str = Field(..., description="ID of the user who created the audio")
+    recipient_ids: list[str] = Field(default_factory=list)  # List of user IDs who can access this audio

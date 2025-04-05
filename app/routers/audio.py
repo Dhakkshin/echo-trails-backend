@@ -129,8 +129,13 @@ async def get_audio_metadata(audio_id: str, current_user: dict = Depends(JWTBear
         if not audio:
             debug_print(request_id, "❌ Audio file not found")
             raise HTTPException(status_code=404, detail="Audio file not found")
-        if audio["user_id"] != current_user["sub"]:
+            
+        # Check if user is in recipient_ids
+        recipient_ids = audio.get("recipient_ids", [])
+        if current_user["sub"] not in recipient_ids:
             debug_print(request_id, "❌ Not authorized to access this audio file")
+            raise HTTPException(status_code=403, detail="Not authorized to access this audio file")
+            
         audio["hidden_until"] = audio["hidden_until"].isoformat()
         audio["created_at"] = audio["created_at"].isoformat()
         
@@ -156,11 +161,15 @@ async def download_audio_file(audio_id: str, current_user: dict = Depends(JWTBea
                 status_code=503,
                 detail="Database connection error. Please try again later."
             )
+
         audio = await get_audio_by_id(audio_id, include_data=True)
         if not audio:
             debug_print(request_id, "❌ Audio file not found")
             raise HTTPException(status_code=404, detail="Audio file not found")
-        if audio["user_id"] != current_user["sub"]:
+            
+        # Check if user is in recipient_ids
+        recipient_ids = audio.get("recipient_ids", [])
+        if current_user["sub"] not in recipient_ids:
             debug_print(request_id, "❌ Not authorized to access this audio file")
             raise HTTPException(status_code=403, detail="Not authorized to access this audio file")
 
