@@ -292,6 +292,21 @@ async def get_following_users(
         debug_print(request_id, "❌ Get following users failed", e)
         raise
 
+@router.get("/followers")
+async def get_followers(
+    token: dict = Depends(JWTBearer()),
+    user_service: UserService = Depends()
+):
+    request_id = str(uuid.uuid4())
+    try:
+        user_id = token.get("sub")
+        result = await user_service.get_followers(user_id)
+        debug_print(request_id, f"✅ Retrieved followers list for user {user_id}")
+        return result
+    except Exception as e:
+        debug_print(request_id, "❌ Get followers failed", e)
+        raise
+
 @router.get("/all", dependencies=[Depends(JWTBearer())])
 async def get_all_users(
     current_user: dict = Depends(JWTBearer()),

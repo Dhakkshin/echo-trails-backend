@@ -254,6 +254,27 @@ class UserService:
                 
         return following_users
 
+    async def get_followers(self, user_id: str):
+        """Get list of users who follow this user"""
+        collection = await self.get_collection()
+        user = await collection.find_one({"_id": ObjectId(user_id)})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        followers_list = user.get("followers", [])
+        followers = []
+        
+        for follower_id in followers_list:
+            follower = await collection.find_one({"_id": ObjectId(follower_id)})
+            if follower:
+                followers.append({
+                    "id": str(follower["_id"]),
+                    "username": follower["username"]
+                })
+                
+        return followers
+
     async def get_username_by_id(self, user_id: str) -> str:
         collection = await self.get_collection()
         user = await collection.find_one({"_id": ObjectId(user_id)})
