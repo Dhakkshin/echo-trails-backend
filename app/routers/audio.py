@@ -168,9 +168,15 @@ async def download_audio_file(audio_id: str, current_user: dict = Depends(JWTBea
             raise HTTPException(status_code=404, detail="Audio file not found")
             
         # Check if user is in recipient_ids
+        user_id = current_user["sub"]
         recipient_ids = audio.get("recipient_ids", [])
-        if current_user["sub"] not in recipient_ids:
-            debug_print(request_id, "❌ Not authorized to access this audio file")
+        
+        debug_print(request_id, f"🔍 Access check - User ID: {user_id}")
+        debug_print(request_id, f"🔍 Audio recipient_ids: {recipient_ids}")
+        debug_print(request_id, f"🔍 Is user in recipients: {user_id in recipient_ids}")
+        
+        if user_id not in recipient_ids:
+            debug_print(request_id, f"❌ Access denied - User {user_id} not in recipient_ids")
             raise HTTPException(status_code=403, detail="Not authorized to access this audio file")
 
         def iterfile():
@@ -185,10 +191,13 @@ async def download_audio_file(audio_id: str, current_user: dict = Depends(JWTBea
                 "Accept-Ranges": "bytes"
             }
         )
+    except HTTPException as he:
+        debug_print(request_id, "❌ Failed to download audio file", he)
+        raise he  # Re-raise HTTP exceptions as-is
     except Exception as e:
         debug_print(request_id, "❌ Failed to download audio file", e)
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @router.get("/nearby/", dependencies=[Depends(JWTBearer())])
 async def get_nearby_files(
     latitude: float,
